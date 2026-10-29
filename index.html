@@ -1,0 +1,1528 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>阿瓦隆 · 玩家记录台</title>
+<style>
+  :root{
+    --bg:#0b0e18; --panel:#121729; --panel2:#171e33; --line:#242c47;
+    --text:#e9edf9; --muted:#8d97b8; --dim:#6b7494;
+    --gold:#e2b955; --blue:#5b8cff; --red:#ff6f7d; --green:#3ddc97; --amber:#e8843f;
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0;padding:0}
+  body{
+    min-height:100vh; background:
+      radial-gradient(1100px 560px at 12% -12%, rgba(91,140,255,.14), transparent 62%),
+      radial-gradient(900px 480px at 92% -6%, rgba(226,185,85,.09), transparent 58%),
+      var(--bg);
+    color:var(--text);
+    font-family:"PingFang SC","Microsoft YaHei",system-ui,-apple-system,"Segoe UI",sans-serif;
+    -webkit-font-smoothing:antialiased;
+  }
+  .hidden{display:none !important}
+  .wrap{max-width:1120px;margin:0 auto;padding:34px 22px 60px}
+  .card{
+    background:linear-gradient(180deg,rgba(26,33,56,.92),rgba(18,23,41,.94));
+    border:1px solid var(--line); border-radius:16px; padding:16px;
+    box-shadow:0 18px 44px -30px rgba(0,0,0,.9);
+  }
+  .card + .card{margin-top:14px}
+  .cardhead{display:flex;align-items:baseline;justify-content:space-between;gap:10px;margin-bottom:12px;font-size:13px;font-weight:600;color:#cdd6ef}
+  .cardhead .hint{font-weight:400;font-size:11.5px;color:var(--dim)}
+  .eyebrow{font-size:11.5px;letter-spacing:.16em;color:var(--gold);text-transform:uppercase;margin-bottom:10px}
+  h1{margin:0 0 10px;font-size:clamp(24px,3.2vw,32px);font-weight:750;
+    background:linear-gradient(100deg,#fff 10%,#f3dfa8 55%,#c9a54a 100%);
+    -webkit-background-clip:text;background-clip:text;color:transparent}
+  .hero p{margin:0;color:var(--muted);font-size:13.5px;line-height:1.7}
+  .hero{margin-bottom:24px}
+
+  /* ---------- setup ---------- */
+  .setup{display:grid;grid-template-columns:1fr 1.25fr 1fr;gap:16px;align-items:start}
+  @media(max-width:980px){.setup{grid-template-columns:1fr}}
+  .step{font-size:11px;letter-spacing:.14em;color:var(--gold);margin-bottom:12px;text-transform:uppercase}
+  .seg{display:grid;grid-auto-flow:column;gap:6px;background:#0e1322;border:1px solid var(--line);padding:4px;border-radius:11px}
+  .seg button{appearance:none;border:0;background:transparent;color:var(--muted);padding:10px 8px;border-radius:8px;font-size:13.5px;font-weight:600;cursor:pointer;font-family:inherit}
+  .seg button.active{background:linear-gradient(180deg,#2a3355,#222a47);color:#fff}
+  .meta{font-size:11.5px;color:var(--dim);line-height:1.7;margin-top:12px}
+  .meta b{color:#b9c6ea;font-weight:600}
+  .meta.warn b,.meta.warn{color:var(--red)}
+  .meta.center{text-align:center}
+  .roles{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+  .rolecard{
+    display:flex;align-items:center;gap:9px;padding:9px 10px;border-radius:10px;cursor:pointer;
+    border:1px solid var(--line);background:#141a2d;color:var(--muted);font-family:inherit;text-align:left;
+    transition:.15s;font-size:12.5px;
+  }
+  .rolecard .ri{font-size:15px;width:16px;text-align:center;opacity:.8}
+  .rolecard .rn{font-weight:600;color:#cdd6ef}
+  .rolecard .rs{font-size:10px;color:var(--dim);margin-left:auto}
+  .rolecard.on{border-color:rgba(226,185,85,.45);background:rgba(226,185,85,.09)}
+  .rolecard.on .rn{color:#f0d48f}
+  .rolecard.locked{cursor:default;opacity:.95}
+  .rolecard.locked .rs{color:var(--gold)}
+  .presets{display:flex;flex-wrap:wrap;gap:6px;margin-top:12px}
+  .preset{appearance:none;border:1px solid var(--line);background:#151b2e;color:var(--muted);font-family:inherit;font-size:11px;padding:5px 9px;border-radius:99px;cursor:pointer}
+  .preset:hover{color:var(--text);border-color:#33406a}
+  .bigsel,select,input[type=text]{
+    width:100%;appearance:none;background:#0e1322;border:1px solid var(--line);color:var(--text);
+    font-family:inherit;font-size:13.5px;padding:10px 11px;border-radius:10px;outline:none;margin-top:8px;
+  }
+  select:focus,input:focus,textarea:focus{border-color:#3a4875}
+  select, .bigsel{
+    background-image:linear-gradient(45deg,transparent 50%,#7c86a8 50%),linear-gradient(135deg,#7c86a8 50%,transparent 50%);
+    background-position:calc(100% - 18px) 50%,calc(100% - 13px) 50%;
+    background-size:5px 5px,5px 5px;background-repeat:no-repeat;padding-right:32px;
+  }
+  .seatpick{display:flex;align-items:center;gap:10px;margin-top:10px}
+  .seatpick label{font-size:12px;color:var(--muted);white-space:nowrap}
+  .seatpick select{margin-top:0}
+  .btn{
+    appearance:none;border:1px solid var(--line);background:#151b2e;color:#c9d3ee;font-family:inherit;
+    font-size:13px;padding:9px 14px;border-radius:10px;cursor:pointer;transition:.15s;
+  }
+  .btn:hover{border-color:#3a4875;color:#fff}
+  .btn.gold{background:linear-gradient(180deg,#e8c76d,#c79f3c);border-color:#8f7326;color:#1a1405;font-weight:700}
+  .btn.gold:hover{filter:brightness(1.06)}
+  .btn.ghost{background:transparent;color:var(--muted)}
+  .btn.small{font-size:11.5px;padding:6px 10px}
+  .btn.wide{width:100%;margin-top:14px}
+  .btn:disabled{opacity:.4;cursor:not-allowed}
+  .btn.danger{color:#ffb3ba;border-color:#5a2a33}
+
+  /* ---------- board ---------- */
+  .topbar{
+    position:sticky;top:0;z-index:20;display:flex;align-items:center;gap:16px;
+    padding:10px 22px;border-bottom:1px solid var(--line);
+    background:rgba(11,14,24,.86);backdrop-filter:blur(10px);
+  }
+  .brand{font-size:13px;font-weight:700;color:var(--gold);white-space:nowrap}
+  .statusline{font-size:12.5px;color:var(--muted);display:flex;gap:14px;flex-wrap:wrap;align-items:center}
+  .statusline b{color:#dfe6fb;font-weight:600}
+  .statusline .chip{border:1px solid var(--line);border-radius:99px;padding:2px 9px;font-size:11px;color:#b9c6ea;background:#141a2d}
+  .topbar .btn{margin-left:auto}
+  .board{display:grid;grid-template-columns:288px minmax(0,1fr) 352px;gap:16px;max-width:1360px;margin:0 auto;padding:16px 20px 70px;align-items:start}
+  @media(max-width:1180px){.board{grid-template-columns:1fr 1fr}.col.right{grid-column:1/-1}}
+  @media(max-width:760px){.board{grid-template-columns:1fr}.col.right{grid-column:auto}}
+
+  .plist{display:flex;flex-direction:column;gap:5px}
+  .prow{display:flex;align-items:center;gap:8px;padding:7px 8px;border-radius:9px;cursor:pointer;border:1px solid transparent}
+  .prow:hover{background:#161d31}
+  .prow.sel{background:#1a2238;border-color:#33406a}
+  .prow .num{width:22px;height:22px;border-radius:50%;background:#1e2740;display:grid;place-items:center;font-size:11.5px;font-weight:700;color:#b9c6ea;flex:none}
+  .prow.me .num{background:rgba(226,185,85,.18);color:var(--gold);border:1px solid rgba(226,185,85,.5)}
+  .prow .nm{font-size:12.5px;color:#cdd6ef}
+  .badges{margin-left:auto;display:flex;gap:4px;flex-wrap:wrap;justify-content:flex-end}
+  .badge{font-size:10px;padding:1px 6px;border-radius:99px;border:1px solid var(--line);color:var(--dim);white-space:nowrap}
+  .t-core{color:#3ddc97;border-color:rgba(61,220,151,.35);background:rgba(61,220,151,.08)}
+  .t-lean{color:#7fd3c0;border-color:rgba(127,211,192,.3);background:rgba(127,211,192,.07)}
+  .t-null{color:#8d97b8}
+  .t-sus{color:#e8a35a;border-color:rgba(232,163,90,.35);background:rgba(232,163,90,.08)}
+  .t-evil{color:#ff8f9a;border-color:rgba(255,111,125,.35);background:rgba(255,111,125,.08)}
+  .rbadge{color:#9fb2e6;border-color:#33406a;background:#1a2238}
+
+  .tagrow{display:grid;grid-template-columns:repeat(5,1fr);gap:5px;margin:10px 0}
+  .tagbtn{appearance:none;border:1px solid var(--line);background:#141a2d;color:var(--muted);font-family:inherit;font-size:11px;padding:6px 2px;border-radius:8px;cursor:pointer}
+  .tagbtn.on{color:#0b0e18;font-weight:700}
+  .tagbtn.on[data-tag=core]{background:#3ddc97;border-color:#3ddc97}
+  .tagbtn.on[data-tag=lean]{background:#7fd3c0;border-color:#7fd3c0}
+  .tagbtn.on[data-tag=null]{background:#8d97b8;border-color:#8d97b8}
+  .tagbtn.on[data-tag=sus]{background:#e8a35a;border-color:#e8a35a}
+  .tagbtn.on[data-tag=evil]{background:#ff6f7d;border-color:#ff6f7d}
+  textarea{width:100%;min-height:64px;resize:vertical;background:#0e1322;border:1px solid var(--line);color:var(--text);font-family:inherit;font-size:12.5px;padding:9px 10px;border-radius:10px;outline:none;margin-top:6px;line-height:1.6}
+
+  .roundline{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:12px}
+  .roundline .rno{font-size:15px;font-weight:700;color:#f0d48f}
+  .roundline .req{font-size:12px;color:var(--muted)}
+  .fieldrow{display:flex;align-items:center;gap:10px;margin:10px 0}
+  .fieldrow label{font-size:12px;color:var(--muted);white-space:nowrap;width:44px}
+  .fieldrow select{margin-top:0}
+  .seats{display:flex;flex-wrap:wrap;gap:6px;margin:10px 0}
+  .seat-chip{
+    width:38px;height:34px;border-radius:9px;border:1px solid var(--line);background:#141a2d;color:#b9c6ea;
+    font-family:inherit;font-size:13px;font-weight:600;cursor:pointer;transition:.13s;
+  }
+  .seat-chip:hover{border-color:#3a4875}
+  .seat-chip.on{background:rgba(226,185,85,.16);border-color:var(--gold);color:#f0d48f}
+  .seat-chip:disabled{opacity:.35;cursor:not-allowed}
+  .votes{display:grid;grid-template-columns:repeat(auto-fill,minmax(96px,1fr));gap:6px;margin:10px 0}
+  .vote-cell{display:flex;align-items:center;gap:4px;background:#101627;border:1px solid var(--line);border-radius:9px;padding:5px 6px}
+  .vote-cell .vn{font-size:11.5px;color:#9aa4c4;width:26px;flex:none;text-align:center}
+  .vbtn{flex:1;appearance:none;border:1px solid transparent;background:#161d31;color:var(--dim);font-family:inherit;font-size:11px;padding:4px 0;border-radius:6px;cursor:pointer}
+  .vbtn.yes.on{background:rgba(61,220,151,.18);color:#3ddc97;border-color:rgba(61,220,151,.4)}
+  .vbtn.no.on{background:rgba(255,111,125,.16);color:#ff8f9a;border-color:rgba(255,111,125,.4)}
+  .actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:12px}
+  .count{font-size:11.5px;color:var(--dim)}
+  .count b{color:var(--gold)}
+
+  .questbox{border:1px solid rgba(226,185,85,.3);background:rgba(226,185,85,.06);border-radius:12px;padding:12px;margin-top:12px}
+  .questbox .qteam{font-size:13px;color:#f0d48f;font-weight:600;margin-bottom:8px}
+  .fails{display:flex;gap:6px;flex-wrap:wrap}
+  .failbtn{width:38px;height:34px;border-radius:9px;border:1px solid var(--line);background:#141a2d;color:#b9c6ea;font-family:inherit;font-size:13px;font-weight:600;cursor:pointer}
+  .failbtn:hover{border-color:#ff6f7d;color:#ff8f9a}
+
+  .logitem{padding:8px 0;border-bottom:1px solid rgba(255,255,255,.05);font-size:12px;color:#a9b4d4;line-height:1.6}
+  .logitem:last-child{border-bottom:0}
+  .logitem .lk{color:#f0d48f;font-weight:600;margin-right:6px}
+  .logitem .good{color:var(--green)}
+  .logitem .bad{color:var(--red)}
+  .logitem .muted{color:var(--dim)}
+  .logitem .vtext{color:#7c86a8;font-size:11px}
+
+  /* 历史票型矩阵 */
+  .mx-wrap{overflow-x:auto;margin:0 -4px;padding-bottom:2px}
+  table.mx{width:100%;border-collapse:separate;border-spacing:3px;font-size:11.5px}
+  table.mx th{font-size:10px;font-weight:500;color:var(--dim);padding:2px;text-align:center;white-space:nowrap}
+  table.mx td{text-align:center;padding:2px;color:#b9c4e2;vertical-align:middle}
+  table.mx td.mx-r{color:#f0d48f;font-weight:600;white-space:nowrap}
+  table.mx td.mx-team{font-size:11px;color:#8d97b8;white-space:nowrap}
+  table.mx td.mx-v{font-variant-numeric:tabular-nums;color:#9aa4c4;white-space:nowrap}
+  .mx-cell{width:24px;min-width:24px;height:24px;border-radius:6px;font-weight:700;font-size:12px}
+  table.mx td.mx-cell{padding:0;line-height:24px}
+  .mx-cell.yes{color:#3ddc97;background:rgba(61,220,151,.13)}
+  .mx-cell.no{color:#ff8f9a;background:rgba(255,111,125,.13)}
+  .mx-cell.none{color:#3a4160;background:#101627}
+  .mx-cell.on-team{box-shadow:inset 0 -3px 0 #e2b955, 0 0 0 1px rgba(226,185,85,.32)}
+  table.mx tr.pending td{background:rgba(226,185,85,.06)}
+  .mx-q .qres{font-weight:600;font-size:11.5px;line-height:1.4}
+  .mx-q .qres.bad{color:#ff8f9a}
+  .mx-q .qres.good{color:#3ddc97}
+  .mx-q .qsub{font-size:9.5px;color:var(--dim);margin-top:1px;white-space:nowrap}
+  .mx-legend{display:flex;gap:14px;flex-wrap:wrap;margin-top:8px;font-size:10.5px;color:var(--dim)}
+  .mx-legend .lg{display:inline-block;width:9px;height:9px;border-radius:2px;margin-right:4px;vertical-align:middle}
+  .mx-legend .lg.yes{background:rgba(61,220,151,.55)}
+  .mx-legend .lg.no{background:rgba(255,111,125,.55)}
+  .mx-legend .lg.team{background:transparent;box-shadow:inset 0 -3px 0 #e2b955, 0 0 0 1px rgba(226,185,85,.32);border-radius:2px}
+
+  .adv .adv-title{font-size:14px;font-weight:700;color:#f0d48f;margin-bottom:8px;line-height:1.5}
+  .adv .adv-title.warn{color:#ffb3ba}
+  .adv .adv-title.good{color:var(--green)}
+  .adv ul{margin:8px 0 0;padding-left:16px}
+  .adv li{margin:6px 0;font-size:12.5px;line-height:1.65;color:#b9c4e2}
+  .adv li b{color:#e6ecff}
+  .adv .ev{display:flex;gap:8px;margin-top:10px}
+  .evcard{flex:1;background:#101627;border:1px solid var(--line);border-radius:10px;padding:9px 10px}
+  .evcard .en{font-size:11px;color:var(--dim)}
+  .evcard .es{font-size:18px;font-weight:700;color:#e6ecff;font-variant-numeric:tabular-nums}
+  .evcard .eb{font-size:10.5px;color:var(--dim);margin-top:3px;line-height:1.5}
+  .rank{display:flex;flex-direction:column;gap:6px;margin-top:10px}
+  .rankrow{display:flex;align-items:center;gap:8px;font-size:12px}
+  .rankrow .rn2{width:26px;height:24px;border-radius:7px;background:#1a2238;display:grid;place-items:center;color:#b9c6ea;font-weight:700;flex:none}
+  .rankrow .bar{flex:1;height:8px;border-radius:99px;background:#1a2238;overflow:hidden}
+  .rankrow .bar i{display:block;height:100%;background:linear-gradient(90deg,#5b8cff,#e2b955);border-radius:99px}
+  .rankrow .rv{width:36px;text-align:right;color:var(--dim);font-size:11px;font-variant-numeric:tabular-nums}
+  .chips{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px}
+  .kchip{appearance:none;border:1px solid var(--line);background:#141a2d;color:var(--muted);font-family:inherit;font-size:12px;padding:6px 10px;border-radius:8px;cursor:pointer}
+  .kchip.on{border-color:rgba(226,185,85,.5);background:rgba(226,185,85,.12);color:#f0d48f}
+  .stars{display:flex;gap:4px;margin-top:6px}
+  .star{appearance:none;border:0;background:transparent;color:#333b58;font-size:18px;cursor:pointer;padding:0 1px;line-height:1}
+  .star.on{color:var(--gold)}
+
+  .toast{
+    position:fixed;left:50%;bottom:26px;transform:translate(-50%,20px);opacity:0;pointer-events:none;
+    background:#1d2540;border:1px solid #3a4875;color:#e6ecff;font-size:12.5px;padding:9px 16px;border-radius:99px;
+    transition:.2s;z-index:99;box-shadow:0 10px 30px -10px #000;
+  }
+  .toast.show{opacity:1;transform:translate(-50%,0)}
+  .empty{color:var(--dim);font-size:12px;line-height:1.7;text-align:center;padding:12px 0}
+  .endbanner{border:1px solid rgba(226,185,85,.35);background:rgba(226,185,85,.08);border-radius:12px;padding:14px;font-size:14px;font-weight:700;color:#f0d48f}
+  .endbanner.evil{border-color:rgba(255,111,125,.35);background:rgba(255,111,125,.08);color:#ffb3ba}
+</style>
+
+<link rel="manifest" href="./manifest.json">
+<link rel="icon" type="image/png" href="./icon-192.png">
+<link rel="apple-touch-icon" href="./apple-touch-icon.png">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black">
+<meta name="apple-mobile-web-app-title" content="阿瓦隆">
+</head>
+<body>
+
+<!-- ================= SETUP ================= -->
+<div id="setupView" class="view">
+  <div class="wrap">
+    <header class="hero">
+      <div class="eyebrow">THE RESISTANCE : AVALON</div>
+      <h1>阿瓦隆 · 玩家记录台</h1>
+      <p>记录每一轮的车队、票型与你的判断；按你抽到的角色，给出下一步该做什么。</p>
+    </header>
+
+    <div class="setup">
+      <section class="card">
+        <div class="step">01 · 人数</div>
+        <div class="seg" id="nSeg">
+          <button data-act="n" data-n="7">7 人</button>
+          <button data-act="n" data-n="8">8 人</button>
+        </div>
+        <div class="meta" id="nMeta"></div>
+      </section>
+
+      <section class="card">
+        <div class="step">02 · 角色总类</div>
+        <div class="roles" id="roleGrid"></div>
+        <div class="meta" id="roleMeta"></div>
+        <div class="presets" id="presetRow"></div>
+      </section>
+
+      <section class="card">
+        <div class="step">03 · 我的角色</div>
+        <div class="seatpick">
+          <label>座位号</label>
+          <select id="mySeat"></select>
+        </div>
+        <select id="myRoleSel" class="bigsel"></select>
+        <div class="meta" id="myRoleMeta"></div>
+        <button class="btn gold wide" data-act="start" id="startBtn">开始记录</button>
+        <div class="meta center" style="margin-top:10px"><a href="#" data-act="demo" style="color:#8ea6dd;text-decoration:none;border-bottom:1px dotted #46527a">载入示例局面</a></div>
+      </section>
+    </div>
+  </div>
+</div>
+
+<!-- ================= GAME ================= -->
+<div id="gameView" class="view hidden">
+  <header class="topbar">
+    <div class="brand">✦ 记录台</div>
+    <div class="statusline" id="statusLine"></div>
+    <button class="btn ghost small" data-act="reset">新开一局</button>
+  </header>
+
+  <div class="board">
+    <aside class="col left">
+      <section class="card">
+        <div class="cardhead">玩家 <span class="hint">点击编辑标记</span></div>
+        <div id="playerList" class="plist"></div>
+      </section>
+      <section class="card" id="editorCard"></section>
+    </aside>
+
+    <main class="col center">
+      <section class="card" id="proposalCard"></section>
+      <section class="card hidden" id="questCard"></section>
+      <section class="card">
+        <div class="cardhead">历史记录 <span class="hint" id="logCount"></span></div>
+        <div id="logList"></div>
+      </section>
+    </main>
+
+    <aside class="col right">
+      <section class="card" id="privateCard"></section>
+      <section class="card advice" id="adviceCard"></section>
+    </aside>
+  </div>
+</div>
+
+<div id="toast" class="toast"></div>
+
+<script>
+(function () {
+'use strict';
+
+/* =========================================================
+   常量
+   ========================================================= */
+const $ = (s, r = document) => r.querySelector(s);
+const $$ = (s, r = document) => Array.from(r.querySelectorAll(s));
+
+const RULES = {
+  7: { good: 4, evil: 3, teams: [2, 3, 3, 4, 4] },
+  8: { good: 5, evil: 3, teams: [3, 4, 4, 5, 5] }
+};
+
+const ROLE = {
+  merlin:   { name: '梅林',     side: 'good', icon: '✦' },
+  percival: { name: '派西维尔', side: 'good', icon: '◈' },
+  loyal:    { name: '忠臣',     side: 'good', icon: '○' },
+  assassin: { name: '刺客',     side: 'evil', icon: '†' },
+  morgana:  { name: '莫甘娜',   side: 'evil', icon: '✧' },
+  mordred:  { name: '莫德雷德', side: 'evil', icon: '♆' },
+  oberon:   { name: '奥伯伦',   side: 'evil', icon: '☾' },
+  minion:   { name: '爪牙',     side: 'evil', icon: '●' }
+};
+
+const ROLE_DESC = {
+  merlin: '你看到除莫德雷德外的所有坏人。目标：把信息传出去，又不被刺客认出来。',
+  percival: '你看到梅林与莫甘娜，但分不清谁是谁。目标：保护真梅林，并把莫甘娜当诱饵。',
+  loyal: '你没有夜间信息。目标：靠票型和任务结果推出坏人。',
+  assassin: '你和队友互认（奥伯伦除外）。好人三胜后由你刺杀梅林，一票定胜负。',
+  morgana: '你在派西维尔眼里就是梅林。目标：让派西维尔保护你，浪费他的信息。',
+  mordred: '梅林看不到你。你可以更激进，但别做唯一那个投失败票的人。',
+  oberon: '你不认识队友，队友也不认识你。目标：上车、炸车，并用行为给队友打信号。',
+  minion: '普通坏人。跟着队友的节奏走，需要时投失败票。'
+};
+
+const TAG = {
+  core: { label: '铁好', v: 2,  cls: 't-core' },
+  lean: { label: '偏好', v: 1,  cls: 't-lean' },
+  null: { label: '中立', v: 0,  cls: 't-null' },
+  sus:  { label: '存疑', v: -1, cls: 't-sus' },
+  evil: { label: '铁坏', v: -2, cls: 't-evil' }
+};
+
+const PRESETS = [
+  { id: 'p7o', n: 7, label: '7人 · 标准（奥伯伦）', roles: { merlin: 1, percival: 1, morgana: 1, mordred: 0, oberon: 1, assassin: 1 } },
+  { id: 'p7m', n: 7, label: '7人 · 莫德雷德', roles: { merlin: 1, percival: 1, morgana: 1, mordred: 1, oberon: 0, assassin: 1 } },
+  { id: 'p8m', n: 8, label: '8人 · 标准（莫德雷德）', roles: { merlin: 1, percival: 1, morgana: 1, mordred: 1, oberon: 0, assassin: 1 } },
+  { id: 'p8o', n: 8, label: '8人 · 奥伯伦', roles: { merlin: 1, percival: 1, morgana: 1, mordred: 0, oberon: 1, assassin: 1 } },
+  { id: 'lite', n: 7, label: '新手 · 只梅林+刺客', roles: { merlin: 1, percival: 0, morgana: 0, mordred: 0, oberon: 0, assassin: 1 } }
+];
+
+const KEY = 'avalon-log-v1';
+
+/* =========================================================
+   状态
+   ========================================================= */
+let setup = {
+  n: 7,
+  roles: { merlin: true, percival: true, morgana: true, mordred: false, oberon: true, assassin: true },
+  myRole: 'percival',
+  mySeat: 4
+};
+let game = null;
+let sel = null;
+let draft = null;
+
+const uid = () => Math.random().toString(36).slice(2, 9);
+const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
+const num = (x) => Math.round(x * 10) / 10;
+
+/* =========================================================
+   角色配置计算
+   ========================================================= */
+function roleCounts(n, roles) {
+  const c = RULES[n];
+  const loyal = c.good - 1 - (roles.percival ? 1 : 0);
+  const minions = c.evil - 1 - (roles.morgana ? 1 : 0) - (roles.mordred ? 1 : 0) - (roles.oberon ? 1 : 0);
+  return { loyal, minions, valid: loyal >= 0 && minions >= 0 };
+}
+
+function roleOptions(n, roles) {
+  const rc = roleCounts(n, roles);
+  const list = [{ key: 'merlin', count: 1 }];
+  if (roles.percival) list.push({ key: 'percival', count: 1 });
+  if (rc.loyal > 0) list.push({ key: 'loyal', count: rc.loyal });
+  list.push({ key: 'assassin', count: 1 });
+  if (roles.morgana) list.push({ key: 'morgana', count: 1 });
+  if (roles.mordred) list.push({ key: 'mordred', count: 1 });
+  if (roles.oberon) list.push({ key: 'oberon', count: 1 });
+  if (rc.minions > 0) list.push({ key: 'minion', count: rc.minions });
+  return list.map(o => ({
+    key: o.key,
+    count: o.count,
+    label: ROLE[o.key].name + (o.count > 1 ? ' ×' + o.count : '')
+  }));
+}
+
+/* =========================================================
+   存档
+   ========================================================= */
+function save() {
+  if (!game) return;
+  try { localStorage.setItem(KEY, JSON.stringify(game)); } catch (e) {}
+}
+function clearSave() {
+  try { localStorage.removeItem(KEY); } catch (e) {}
+}
+
+/* =========================================================
+   开局
+   ========================================================= */
+function buildGame(n, roles, myRole, mySeat) {
+  return {
+    n, roles: Object.assign({}, roles), myRole, mySeat,
+    marks: {},
+    private: { candidates: [], teammates: [], seenEvil: [] },
+    log: [],
+    round: 1, leader: 1, good: 0, evil: 0, rejections: 0,
+    pending: null, over: null
+  };
+}
+
+function startGame() {
+  const rc = roleCounts(setup.n, setup.roles);
+  if (!rc.valid) return toast('角色人数对不上，先调整角色');
+  const opts = roleOptions(setup.n, setup.roles);
+  if (!opts.some(o => o.key === setup.myRole)) setup.myRole = 'merlin';
+  game = buildGame(setup.n, setup.roles, setup.myRole, setup.mySeat);
+  sel = null;
+  resetDraft();
+  save();
+  showGame();
+}
+
+function resetDraft() {
+  draft = { leader: game.leader, team: [], votes: {} };
+}
+
+/* =========================================================
+   游戏推进
+   ========================================================= */
+const nextSeat = (i) => (i % game.n) + 1;
+const requiredSize = () => RULES[game.n].teams[game.round - 1];
+const failNeed = () => (game.round === 4 ? 2 : 1);
+const pendingEntry = () => game.log.find(e => e.id === game.pending) || null;
+
+function setVote(id, v) {
+  if (game.over || game.pending) return;
+  if (draft.votes[id] === v) delete draft.votes[id];
+  else draft.votes[id] = v;
+  renderGame();
+}
+
+function toggleTeam(id) {
+  if (game.over || game.pending) return;
+  const i = draft.team.indexOf(id);
+  if (i >= 0) draft.team.splice(i, 1);
+  else {
+    if (draft.team.length >= requiredSize()) return toast('本轮车队已满 ' + requiredSize() + ' 人');
+    draft.team.push(id);
+  }
+  renderGame();
+}
+
+function allVotes(v) {
+  if (game.over || game.pending) return;
+  draft.votes = {};
+  for (let i = 1; i <= game.n; i++) draft.votes[i] = v;
+  renderGame();
+}
+
+function submitProposal() {
+  if (game.over || game.pending) return;
+  const k = requiredSize();
+  if (draft.team.length !== k) return toast('本轮需要 ' + k + ' 人上车');
+  const missing = [];
+  for (let i = 1; i <= game.n; i++) if (!draft.votes[i]) missing.push(i);
+  if (missing.length) return toast('还有 ' + missing.length + ' 人没记录投票');
+
+  const yes = Object.values(draft.votes).filter(v => v === 'yes').length;
+  const approved = yes * 2 > game.n;
+  const entry = {
+    id: uid(),
+    round: game.round,
+    leader: draft.leader,
+    team: draft.team.slice().sort((a, b) => a - b),
+    votes: Object.assign({}, draft.votes),
+    approved,
+    quest: null
+  };
+  game.log.push(entry);
+
+  if (approved) {
+    game.pending = entry.id;
+  } else {
+    game.rejections++;
+    if (game.rejections >= 5) {
+      game.over = 'reject';
+    } else {
+      game.leader = nextSeat(draft.leader);
+      resetDraft();
+    }
+  }
+  save();
+  renderGame();
+}
+
+function resolveQuest(fails) {
+  const e = pendingEntry();
+  if (!e) return;
+  const need = failNeed();
+  const result = fails >= need ? 'fail' : 'success';
+  e.quest = { fails, result };
+  game.pending = null;
+
+  if (result === 'fail') game.evil++;
+  else game.good++;
+
+  if (game.good >= 3) game.over = 'assassinate';
+  else if (game.evil >= 3) game.over = 'evil';
+  else {
+    game.round++;
+    game.rejections = 0;
+    game.leader = nextSeat(e.leader);
+    resetDraft();
+  }
+  save();
+  renderGame();
+}
+
+/* =========================================================
+   统计与推断
+   ========================================================= */
+function stats() {
+  const s = {};
+  for (let i = 1; i <= game.n; i++) {
+    s[i] = { onQ: 0, onFail: 0, onSucc: 0, yesFail: 0, noFail: 0, yesSucc: 0, noSucc: 0 };
+  }
+  game.log.forEach(e => {
+    if (!e.quest) return;
+    const failed = e.quest.result === 'fail';
+    e.team.forEach(id => {
+      if (!s[id]) return;
+      s[id].onQ++;
+      if (failed) s[id].onFail++; else s[id].onSucc++;
+    });
+    Object.keys(e.votes).forEach(k => {
+      const id = +k, v = e.votes[k];
+      if (!s[id]) return;
+      if (failed) { if (v === 'yes') s[id].yesFail++; else s[id].noFail++; }
+      else { if (v === 'yes') s[id].yesSucc++; else s[id].noSucc++; }
+    });
+  });
+  return s;
+}
+
+/** 某人是否是已知坏人（按当前角色的私密信息） */
+function knownEvilSet() {
+  const set = new Set();
+  const r = game.myRole;
+  const p = game.private;
+  if (r === 'merlin') p.seenEvil.forEach(id => set.add(id));
+  else if (r === 'assassin' || r === 'morgana' || r === 'mordred') {
+    p.teammates.forEach(id => set.add(id));
+    set.add(game.mySeat);
+  } else if (r === 'minion') {
+    p.teammates.forEach(id => set.add(id));
+    set.add(game.mySeat);
+  }
+  return set;
+}
+
+/** 对“已知坏人”的投票信号：反对含坏人车 +，赞成为 - */
+function signal(id, evilSet) {
+  let no = 0, yes = 0, score = 0, detail = [];
+  game.log.forEach(e => {
+    const evilOn = e.team.filter(x => evilSet.has(x)).length;
+    if (!evilOn) return;
+    const v = e.votes[id];
+    if (v === 'no') { no++; score += evilOn; detail.push('第 ' + e.round + ' 轮反对含 ' + evilOn + ' 坏的车'); }
+    else if (v === 'yes') { yes++; score -= evilOn; detail.push('第 ' + e.round + ' 轮赞成含 ' + evilOn + ' 坏的车'); }
+  });
+  return { no, yes, score, detail, total: no + yes, acc: no + yes ? no / (no + yes) : 0 };
+}
+
+/** 两人投票一致率 */
+function agreement(a, b) {
+  let same = 0, tot = 0;
+  game.log.forEach(e => {
+    const va = e.votes[a], vb = e.votes[b];
+    if (!va || !vb) return;
+    tot++;
+    if (va === vb) same++;
+  });
+  return tot ? { same, tot, rate: same / tot } : null;
+}
+
+/** 公开信息下的怀疑度（好人视角，不含私密信息） */
+function publicSuspicion() {
+  const st = stats();
+  const arr = [];
+  for (let i = 1; i <= game.n; i++) {
+    let v = 0;
+    v += st[i].onFail * 2;
+    v += st[i].yesFail * 1.5;
+    v -= st[i].noFail * 1.2;
+    v -= st[i].onSucc * 0.6;
+    const t = game.marks[i] && game.marks[i].tag;
+    if (t) v -= TAG[t].v;
+    arr.push({ id: i, v });
+  }
+  return arr;
+}
+
+/** 派西维尔：某候选“更像莫甘娜”的证据分 */
+function percivalEvilScore(id) {
+  let s = 0;
+  const bits = [];
+  game.log.forEach(e => {
+    if (!e.quest) return;
+    const on = e.team.indexOf(id) >= 0;
+    const failed = e.quest.result === 'fail';
+    if (on && failed) { s += 2; bits.push('第 ' + e.round + ' 轮上了失败车'); }
+    if (on && !failed) { s -= 0.5; }
+    if (e.votes[id] === 'yes' && failed) { s += 1.5; bits.push('第 ' + e.round + ' 轮赞成失败车'); }
+    if (e.votes[id] === 'no' && failed) { s -= 1; bits.push('第 ' + e.round + ' 轮反对失败车'); }
+  });
+  const t = game.marks[id] && game.marks[id].tag;
+  if (t) { s += TAG[t].v * -1; if (TAG[t].v !== 0) bits.push('你的标记：' + TAG[t].label); }
+  return { s, bits };
+}
+
+/* =========================================================
+   渲染：开局页
+   ========================================================= */
+function renderSetup() {
+  const n = setup.n;
+  const c = RULES[n];
+  $$('#nSeg button').forEach(b => b.classList.toggle('active', +b.dataset.n === n));
+  $('#nMeta').innerHTML = '好人 <b>' + c.good + '</b> · 坏人 <b>' + c.evil + '</b><br>任务人数 <b>' +
+    c.teams.join(' / ') + '</b> · 第 4 轮需 2 张失败票';
+
+  $('#roleGrid').innerHTML = ['merlin', 'percival', 'assassin', 'morgana', 'mordred', 'oberon'].map(k => {
+    const on = setup.roles[k];
+    const locked = k === 'merlin' || k === 'assassin';
+    const side = ROLE[k].side === 'good' ? '好人' : '坏人';
+    return '<button class="rolecard ' + (on ? 'on' : '') + (locked ? ' locked' : '') +
+      '" data-act="role" data-role="' + k + '">' +
+      '<span class="ri">' + ROLE[k].icon + '</span>' +
+      '<span class="rn">' + ROLE[k].name + '</span>' +
+      '<span class="rs">' + side + (locked ? ' · 固定' : '') + '</span></button>';
+  }).join('');
+
+  const rc = roleCounts(n, setup.roles);
+  const lines = [];
+  lines.push('好人 ' + c.good + ' = 梅林 1' + (setup.roles.percival ? ' + 派西维尔 1' : '') + ' + 忠臣 ' + Math.max(0, rc.loyal));
+  let evilLine = '坏人 ' + c.evil + ' = 刺客 1';
+  if (setup.roles.morgana) evilLine += ' + 莫甘娜 1';
+  if (setup.roles.mordred) evilLine += ' + 莫德雷德 1';
+  if (setup.roles.oberon) evilLine += ' + 奥伯伦 1';
+  if (rc.minions > 0) evilLine += ' + 爪牙 ' + rc.minions;
+  lines.push(evilLine);
+  const meta = $('#roleMeta');
+  meta.className = 'meta' + (rc.valid ? '' : ' warn');
+  meta.innerHTML = lines.join('<br>') + (rc.valid ? '' : '<br>人数对不上：取消一个特殊坏人，或改成 8 人局。');
+
+  $('#presetRow').innerHTML = PRESETS.map(p =>
+    '<button class="preset" data-act="preset" data-preset="' + p.id + '">' + p.label + '</button>').join('');
+
+  const opts = roleOptions(n, setup.roles);
+  const roleSel = $('#myRoleSel');
+  roleSel.innerHTML = opts.map(o =>
+    '<option value="' + o.key + '"' + (o.key === setup.myRole ? ' selected' : '') + '>' + o.label + '</option>').join('');
+  if (!opts.some(o => o.key === setup.myRole) && opts.length) {
+    setup.myRole = opts[0].key;
+    roleSel.value = setup.myRole;
+  }
+
+  const seatSel = $('#mySeat');
+  seatSel.innerHTML = Array.from({ length: n }, (_, i) =>
+    '<option value="' + (i + 1) + '"' + (i + 1 === setup.mySeat ? ' selected' : '') + '>' + (i + 1) + ' 号</option>').join('');
+
+  $('#myRoleMeta').textContent = ROLE_DESC[setup.myRole] || '';
+  $('#startBtn').disabled = !rc.valid;
+}
+
+/* =========================================================
+   渲染：游戏页
+   ========================================================= */
+function showSetup() {
+  $('#setupView').classList.remove('hidden');
+  $('#gameView').classList.add('hidden');
+  renderSetup();
+}
+function showGame() {
+  $('#setupView').classList.add('hidden');
+  $('#gameView').classList.remove('hidden');
+  renderGame();
+}
+
+function renderGame() {
+  if (!game) return;
+  renderStatus();
+  renderPlayers();
+  renderEditor();
+  renderProposal();
+  renderQuest();
+  renderLog();
+  renderPrivate();
+  renderAdvice();
+}
+
+function renderStatus() {
+  $('#statusLine').innerHTML =
+    '<span>第 <b>' + game.round + '</b> 轮</span>' +
+    '<span>好人 <b>' + game.good + '</b> : <b>' + game.evil + '</b> 坏人</span>' +
+    '<span>否决 <b>' + game.rejections + '</b>/5</span>' +
+    '<span class="chip">' + ROLE[game.myRole].name + ' · ' + game.mySeat + ' 号</span>' +
+    (game.demo ? '<span class="chip">示例局面</span>' : '');
+}
+
+function renderPlayers() {
+  const evilSide = ROLE[game.myRole].side === 'evil';
+  $('#playerList').innerHTML = Array.from({ length: game.n }, (_, i) => {
+    const id = i + 1;
+    const m = game.marks[id] || {};
+    const badges = [];
+    if (m.tag) badges.push('<span class="badge ' + TAG[m.tag].cls + '">' + TAG[m.tag].label + '</span>');
+    if (m.role) badges.push('<span class="badge rbadge">' + ROLE[m.role].name + '?</span>');
+    if (evilSide && m.star > 0) badges.push('<span class="badge rbadge">★' + m.star + '</span>');
+    if (m.note) badges.push('<span class="badge">✎</span>');
+    return '<div class="prow ' + (sel === id ? 'sel ' : '') + (id === game.mySeat ? 'me' : '') +
+      '" data-act="select" data-id="' + id + '">' +
+      '<span class="num">' + id + '</span>' +
+      '<span class="nm">' + (id === game.mySeat ? '你' : '') + '</span>' +
+      '<span class="badges">' + badges.join('') + '</span></div>';
+  }).join('');
+}
+
+function renderEditor() {
+  const card = $('#editorCard');
+  if (!sel) {
+    card.innerHTML = '<div class="cardhead">标记</div><div class="empty">点击左侧玩家，记录你的判断</div>';
+    return;
+  }
+  const m = game.marks[sel] || {};
+  const evilSide = ROLE[game.myRole].side === 'evil';
+  const opts = ['<option value="">未知</option>'].concat(
+    roleOptions(game.n, game.roles).map(o =>
+      '<option value="' + o.key + '"' + (m.role === o.key ? ' selected' : '') + '>' + ROLE[o.key].name + '</option>')
+  ).join('');
+
+  card.innerHTML =
+    '<div class="cardhead">' + sel + ' 号' + (sel === game.mySeat ? ' · 你' : '') +
+    '<button class="btn ghost small" data-act="close-editor">收起</button></div>' +
+    '<div class="tagrow">' + Object.keys(TAG).map(k =>
+      '<button class="tagbtn ' + (m.tag === k ? 'on' : '') + '" data-act="tag" data-id="' + sel + '" data-tag="' + k + '">' + TAG[k].label + '</button>'
+    ).join('') + '</div>' +
+    '<select data-act="guess" data-id="' + sel + '">' + opts + '</select>' +
+    (evilSide ? '<div class="meta">梅林嫌疑（仅坏人可见）</div><div class="stars">' +
+      [1, 2, 3].map(v => '<button class="star ' + ((m.star || 0) >= v ? 'on' : '') + '" data-act="star" data-id="' + sel + '" data-v="' + v + '">★</button>').join('') +
+      '<button class="star" data-act="star" data-id="' + sel + '" data-v="0" style="font-size:11px;color:#8d97b8;margin-left:6px">清除</button></div>' : '') +
+    '<textarea data-act="note" data-id="' + sel + '" placeholder="理由 / 关键发言…">' + (m.note || '') + '</textarea>';
+}
+
+function renderProposal() {
+  const card = $('#proposalCard');
+  if (game.over) {
+    card.innerHTML = '<div class="endbanner ' + (game.over === 'evil' || game.over === 'reject' ? 'evil' : '') + '">' +
+      overHeadline() + '</div>' +
+      '<div class="meta">这局已经结束。可以“新开一局”，或继续在左侧补记你的判断。</div>';
+    return;
+  }
+  if (game.pending) {
+    const e = pendingEntry();
+    card.innerHTML = '<div class="roundline"><span class="rno">第 ' + game.round + ' 轮</span>' +
+      '<span class="req">车队已通过，等待任务结算</span></div>' +
+      '<div class="questbox"><div class="qteam">车队：' + e.team.join(' / ') + ' 号</div>' +
+      '<div class="meta">在下面输入失败票数量。</div></div>';
+    return;
+  }
+
+  const k = requiredSize();
+  const c = RULES[game.n];
+  let seats = '';
+  for (let i = 1; i <= game.n; i++) {
+    const on = draft.team.indexOf(i) >= 0;
+    seats += '<button class="seat-chip ' + (on ? 'on' : '') + '" data-act="team" data-id="' + i + '">' + i + '</button>';
+  }
+  let votes = '';
+  for (let i = 1; i <= game.n; i++) {
+    const v = draft.votes[i];
+    votes += '<div class="vote-cell"><span class="vn">' + i + '</span>' +
+      '<button class="vbtn yes ' + (v === 'yes' ? 'on' : '') + '" data-act="vote" data-id="' + i + '" data-v="yes">赞</button>' +
+      '<button class="vbtn no ' + (v === 'no' ? 'on' : '') + '" data-act="vote" data-id="' + i + '" data-v="no">反</button></div>';
+  }
+  let leaderOpts = '';
+  for (let i = 1; i <= game.n; i++) {
+    leaderOpts += '<option value="' + i + '"' + (i === draft.leader ? ' selected' : '') + '>' + i + ' 号</option>';
+  }
+
+  card.innerHTML =
+    '<div class="roundline"><span class="rno">第 ' + game.round + ' 轮</span>' +
+    '<span class="req">需要 ' + k + ' 人 · 需 ' + failNeed() + ' 张失败票' + (game.round === 4 ? ' · 保护轮' : '') + '</span></div>' +
+    '<div class="fieldrow"><label>队长</label><select data-act="leader">' + leaderOpts + '</select></div>' +
+    '<div class="meta">车队（点选 ' + k + ' 人）</div>' +
+    '<div class="seats">' + seats + '</div>' +
+    '<div class="count">已选 <b>' + draft.team.length + '</b>/' + k + '</div>' +
+    '<div class="meta" style="margin-top:12px">投票</div>' +
+    '<div class="votes">' + votes + '</div>' +
+    '<div class="actions">' +
+    '<button class="btn small" data-act="all-yes">全员赞成</button>' +
+    '<button class="btn small" data-act="clear-votes">清空投票</button>' +
+    '<button class="btn gold" data-act="submit" style="margin-left:auto">提交提案</button>' +
+    '</div>';
+}
+
+function renderQuest() {
+  const card = $('#questCard');
+  if (!game.pending || game.over) { card.classList.add('hidden'); return; }
+  card.classList.remove('hidden');
+  const e = pendingEntry();
+  const k = e.team.length;
+  let btns = '';
+  for (let f = 0; f <= k; f++) btns += '<button class="failbtn" data-act="fails" data-n="' + f + '">' + f + '</button>';
+  card.innerHTML =
+    '<div class="cardhead">任务结算 <span class="hint">' + k + ' 人车 · 需 ' + failNeed() + ' 张失败票</span></div>' +
+    '<div class="meta" style="margin-top:0">车队：' + e.team.join(' / ') + ' 号。点选实际出现的失败票张数：</div>' +
+    '<div class="fails" style="margin-top:10px">' + btns + '</div>';
+}
+
+function renderLog() {
+  const list = $('#logList');
+  if (!game.log.length) {
+    $('#logCount').textContent = '';
+    list.innerHTML = '<div class="empty">还没有记录。选好车队、记下每个人的票，然后提交。</div>';
+    return;
+  }
+  const approvedN = game.log.filter(e => e.approved).length;
+  $('#logCount').textContent = game.log.length + ' 次提案 · ' + approvedN + ' 通过 · ' + (game.log.length - approvedN) + ' 否决';
+
+  let head = '<tr><th>轮</th><th>队长</th><th>车队</th>';
+  for (let i = 1; i <= game.n; i++) head += '<th>' + i + '</th>';
+  head += '<th>票数</th><th>提案</th><th>任务</th></tr>';
+
+  const rows = game.log.map(e => {
+    let yes = 0, no = 0;
+    for (let i = 1; i <= game.n; i++) {
+      if (e.votes[i] === 'yes') yes++;
+      else if (e.votes[i] === 'no') no++;
+    }
+    let cells = '';
+    for (let i = 1; i <= game.n; i++) {
+      const v = e.votes[i];
+      const cls = ['mx-cell'];
+      if (e.team.indexOf(i) >= 0) cls.push('on-team');
+      cls.push(v === 'yes' ? 'yes' : v === 'no' ? 'no' : 'none');
+      cells += '<td class="' + cls.join(' ') + '">' + (v === 'yes' ? '✓' : v === 'no' ? '✗' : '·') + '</td>';
+    }
+    let quest;
+    if (e.quest) {
+      const f = e.quest.fails;
+      if (e.quest.result === 'fail') {
+        quest = '<div class="qres bad">失败</div><div class="qsub">' + f + ' 张失败票' + (e.round === 4 ? ' / 需 2' : '') + '</div>';
+      } else {
+        quest = '<div class="qres good">成功</div><div class="qsub">' + f + ' 张失败票</div>';
+      }
+    } else {
+      quest = e.approved ? '<span class="muted">待结算</span>' : '<span class="muted">—</span>';
+    }
+    const prop = e.approved ? '<span class="good">通过</span>' : '<span class="muted">否决</span>';
+    return '<tr class="' + (e.id === game.pending ? 'pending' : '') + '">' +
+      '<td class="mx-r">R' + e.round + '</td>' +
+      '<td>' + e.leader + '</td>' +
+      '<td class="mx-team">' + e.team.join(',') + '</td>' +
+      cells +
+      '<td class="mx-v">' + yes + ':' + no + '</td>' +
+      '<td>' + prop + '</td>' +
+      '<td class="mx-q">' + quest + '</td></tr>';
+  }).join('');
+
+  list.innerHTML =
+    '<div class="mx-wrap"><table class="mx"><thead>' + head + '</thead><tbody>' + rows + '</tbody></table></div>' +
+    '<div class="mx-legend">' +
+      '<span><i class="lg yes"></i>赞成</span>' +
+      '<span><i class="lg no"></i>反对</span>' +
+      '<span><i class="lg team"></i>金色下划线＝在车上</span>' +
+    '</div>';
+}
+
+function renderPrivate() {
+  const card = $('#privateCard');
+  const r = game.myRole;
+  let html = '<div class="cardhead">你的私密信息 <span class="hint">' + ROLE[r].name + '</span></div>';
+
+  if (r === 'percival') {
+    const need = game.roles.morgana ? 2 : 1;
+    html += '<div class="meta" style="margin-top:0">填入夜里看到的号码' + (need === 2 ? '（梅林与莫甘娜，共 2 个）' : '（场上没有莫甘娜，你看到的就是梅林）') + '</div>';
+    for (let s = 0; s < need; s++) {
+      const cur = game.private.candidates[s] || '';
+      let opts = '<option value="">选择号码</option>';
+      for (let i = 1; i <= game.n; i++) {
+        if (i === game.mySeat) continue;
+        if (game.private.candidates.some((x, idx) => x === i && idx !== s)) continue;
+        opts += '<option value="' + i + '"' + (cur === i ? ' selected' : '') + '>' + i + ' 号</option>';
+      }
+      html += '<select data-act="cand" data-slot="' + s + '">' + opts + '</select>';
+    }
+  } else if (r === 'merlin') {
+    const expect = RULES[game.n].evil - (game.roles.mordred ? 1 : 0);
+    html += '<div class="meta" style="margin-top:0">标出你看到的坏人（应选 ' + expect + ' 个，莫德雷德你看不到）</div>';
+    html += '<div class="chips">';
+    for (let i = 1; i <= game.n; i++) {
+      if (i === game.mySeat) continue;
+      const on = game.private.seenEvil.indexOf(i) >= 0;
+      html += '<button class="kchip ' + (on ? 'on' : '') + '" data-act="know" data-id="' + i + '">' + i + ' 号</button>';
+    }
+    html += '</div>';
+    html += '<div class="meta">已选 ' + game.private.seenEvil.length + ' / ' + expect + '</div>';
+  } else if (r === 'assassin' || r === 'morgana' || r === 'mordred' || r === 'minion') {
+    html += '<div class="meta" style="margin-top:0">标出你的队友（' + (r === 'assassin' || r === 'morgana' || r === 'mordred' ? '奥伯伦不在此列，你看不到他' : '全部坏人') + '）</div>';
+    html += '<div class="chips">';
+    for (let i = 1; i <= game.n; i++) {
+      if (i === game.mySeat) continue;
+      const on = game.private.teammates.indexOf(i) >= 0;
+      html += '<button class="kchip ' + (on ? 'on' : '') + '" data-act="know" data-id="' + i + '">' + i + ' 号</button>';
+    }
+    html += '</div>';
+    if (r === 'assassin' || r === 'morgana' || r === 'mordred') {
+      html += '<div class="meta">给可疑玩家打“梅林嫌疑”星级：在左侧点开玩家。</div>';
+    }
+  } else if (r === 'oberon') {
+    html += '<div class="meta" style="margin-top:0">你不认识任何队友，也没有可填的信息。靠行为和票型给队友打信号。</div>';
+  } else {
+    html += '<div class="meta" style="margin-top:0">你没有夜间信息。用左侧的标记记录你的判断，建议会自动基于这些标记生成。</div>';
+  }
+  card.innerHTML = html;
+}
+
+/* =========================================================
+   建议
+   ========================================================= */
+function block(title, cls, items, extra) {
+  return '<div class="adv-title ' + (cls || '') + '">' + title + '</div>' +
+    '<ul>' + items.map(t => '<li>' + t + '</li>').join('') + '</ul>' + (extra || '');
+}
+
+function evidenceCards(a, ea, b, eb) {
+  return '<div class="ev">' +
+    '<div class="evcard"><div class="en">' + a + ' 号 · 证据分</div><div class="es">' + num(ea.s) + '</div>' +
+    '<div class="eb">' + (ea.bits.length ? ea.bits.slice(0, 2).join('；') : '暂无明显记录') + '</div></div>' +
+    '<div class="evcard"><div class="en">' + b + ' 号 · 证据分</div><div class="es">' + num(eb.s) + '</div>' +
+    '<div class="eb">' + (eb.bits.length ? eb.bits.slice(0, 2).join('；') : '暂无明显记录') + '</div></div>' +
+    '</div>';
+}
+
+function rankHTML(list, suffix) {
+  const max = Math.max(1, ...list.map(x => Math.max(0, x.score)));
+  return '<div class="rank">' + list.map(x =>
+    '<div class="rankrow"><span class="rn2">' + x.id + '</span>' +
+    '<span class="bar"><i style="width:' + Math.round(Math.max(0, x.score) / max * 100) + '%"></i></span>' +
+    '<span class="rv">' + num(x.score) + '</span></div>').join('') + '</div>' +
+    (suffix ? '<div class="meta">' + suffix + '</div>' : '');
+}
+
+function phaseTip() {
+  const r = game.round;
+  if (r === 1) return '第 1 轮信息最少：先记票型，别急着定性。';
+  if (r === 4) return '第 4 轮是保护轮：要 2 张失败票，但车队也最大，别放存疑玩家。';
+  if (r === 5) return '第 5 轮只要 1 张失败票：任何一个存疑玩家上车都可能直接炸。';
+  return '好人还差 ' + (3 - game.good) + ' 胜，最多还能输 ' + (2 - game.evil) + ' 轮。';
+}
+
+function overHeadline() {
+  if (game.over === 'assassinate') return '好人三胜，进入刺杀阶段';
+  if (game.over === 'evil') return '坏人三胜，本局结束';
+  if (game.over === 'reject') return '连续五次否决，坏人获胜';
+  return '本局结束';
+}
+
+function overAdvice() {
+  if (game.over === 'assassinate' && game.myRole === 'assassin') {
+    return '<div class="adv-title warn">该刺谁</div>' + assassinRanking();
+  }
+  if (game.over === 'assassinate') {
+    return block('等待刺杀', '', [
+      '好人已经三胜。现在唯一要做的是让刺客选错。',
+      '如果你是梅林：把注意力引向一个好人，别再纠正别人。',
+      '如果你是派西维尔：公开怀疑你保护的那个人，帮他洗掉梅林嫌疑。'
+    ]);
+  }
+  return block('本局结束', '', ['可以在左侧补记关键判断，或新开一局。']);
+}
+
+function assassinRanking() {
+  const evil = knownEvilSet();
+  const list = [];
+  for (let i = 1; i <= game.n; i++) {
+    if (evil.has(i)) continue;
+    const sig = signal(i, evil);
+    const m = game.marks[i] || {};
+    const score = sig.score + (m.star || 0) * 2 + (m.tag === 'evil' ? 1 : 0);
+    list.push({ id: i, score, sig, m });
+  }
+  list.sort((a, b) => b.score - a.score);
+  if (!list.length) return '<div class="empty">先标出队友。</div>';
+  const top = list[0], second = list[1];
+  const items = [];
+  if (top.sig.total === 0) {
+    items.push('还没有足够的投票记录。先记录一轮，再回来看。');
+  } else {
+    items.push('<b>' + top.id + ' 号</b>最像梅林：在 ' + top.sig.total + ' 次含坏人车里，反对 ' + top.sig.no + ' 次、赞成 ' + top.sig.yes + ' 次。');
+    if (second) items.push('第二名是 ' + second.id + ' 号（' + num(second.score) + ' 分），差距 ' + num(top.score - second.score) + '。');
+    items.push('刺杀优先级：<b>' + top.id + ' 号</b>' + (top.m.star ? '（你也给他打了 ' + top.m.star + ' 星）' : '') + '。');
+  }
+  return '<div class="adv-title">最像梅林：' + top.id + ' 号</div>' +
+    '<ul>' + items.map(t => '<li>' + t + '</li>').join('') + '</ul>' +
+    rankHTML(list.slice(0, 5)) +
+    '<div class="meta">分数 = 对含坏人车队的反对次数加权 − 赞成次数；星级与“铁坏”标记会加分。</div>';
+}
+
+function adviceHTML() {
+  if (game.over) return overAdvice();
+  if (game.myRole === 'percival') return percivalAdvice();
+  if (game.myRole === 'assassin') return assassinAdvice();
+  if (game.myRole === 'merlin') return merlinAdvice();
+  if (game.myRole === 'morgana') return morganaAdvice();
+  if (game.myRole === 'mordred') return mordredAdvice();
+  if (game.myRole === 'oberon') return oberonAdvice();
+  return loyalAdvice();
+}
+
+function percivalAdvice() {
+  const cands = game.private.candidates.filter(x => x);
+  if (!game.roles.morgana) {
+    if (!cands.length) return block('先填号码', 'warn', ['在右侧填入你看到的那个人。']);
+    const m = cands[0];
+    return block(m + ' 号就是梅林', 'good', [
+      '场上没有莫甘娜，你看到的这个人<b>百分之百是梅林</b>。',
+      '不要在发言里称他好人，也别每轮都跟着他投赞成。',
+      '偶尔反对他的车队，反而能把他从刺客的名单上挪开。'
+    ]);
+  }
+  if (cands.length < 2) return block('还差一个号码', 'warn', ['把你看到的两个人都填上，我再比较他们的行为。']);
+  const a = cands[0], b = cands[1];
+  const ea = percivalEvilScore(a), eb = percivalEvilScore(b);
+  const diff = ea.s - eb.s;
+
+  if (Math.abs(diff) <= 1.5) {
+    return block('两人还看不出区别', '', [
+      a + ' 号证据分 ' + num(ea.s) + '，' + b + ' 号 ' + num(eb.s) + '，差距太小。',
+      '优先观察：谁上过失败车、谁给失败车投了赞成、谁在保谁。',
+      '在分清之前不要公开表态——你的犹豫本身就是保护。'
+    ], evidenceCards(a, ea, b, eb));
+  }
+  const merlin = diff > 0 ? b : a;
+  const morgana = diff > 0 ? a : b;
+  const em = diff > 0 ? ea : eb;
+  const items = [
+    '<b>' + morgana + ' 号更像莫甘娜</b>：' + (em.bits.length ? em.bits.slice(0, 2).join('；') : '行为更贴坏人') + '。',
+    '跟着 <b>' + merlin + ' 号</b>投票，组队带上他，但别在发言里说他是好人。',
+    '公开把 ' + morgana + ' 号当成可疑对象——让刺客的注意力停在她身上。'
+  ];
+  if (game.round >= 4) items.push('已经到了关键轮：优先保证 ' + merlin + ' 号上车，同时别让 ' + morgana + ' 号拿到失败票。');
+  return block(merlin + ' 号更像梅林', 'good', items, evidenceCards(a, ea, b, eb));
+}
+
+function assassinAdvice() {
+  if (!game.private.teammates.length) {
+    return block('先标出队友', 'warn', ['在右侧点选你看到的队友（奥伯伦不在此列）。有了坏人名单，我才能算出谁最像梅林。']);
+  }
+  const html = assassinRanking();
+  return html + '<div class="meta">现在还不是刺杀阶段：这份榜单会随着每轮投票更新，先记满 2~3 轮再看。</div>';
+}
+
+function merlinAdvice() {
+  const evil = knownEvilSet();
+  if (game.private.seenEvil.length === 0) {
+    return block('先标出你看到的坏人', 'warn', ['在右侧点选你夜里看到的人。之后我会用你真实的投票记录，算出你在刺客眼里有多显眼。']);
+  }
+  const me = game.mySeat;
+  const sig = signal(me, evil);
+  const acc = sig.total ? sig.no / sig.total : 0;
+  const items = [];
+  let title = '你的投票命中率 ' + Math.round(acc * 100) + '%';
+  let cls = '';
+
+  if (sig.total >= 4 && acc >= 0.75) {
+    title = '你太准了：命中率 ' + Math.round(acc * 100) + '%';
+    cls = 'warn';
+    items.push('刺客用同样的算法给你打分：<b>' + num(sig.score) + ' 分</b>，这是全场最高的区间。');
+    items.push('下一轮找一支<b>注定被否决</b>的含坏人车投赞成——零成本把命中率压下来。');
+    items.push('只点 1 个坏人，留 1 个当烟雾弹；不要一次把 3 个都否掉。');
+  } else if (sig.total >= 3) {
+    items.push('目前的暴露度可控（' + sig.no + ' 反 / ' + sig.yes + ' 赞）。');
+    items.push('保持“每次只点一个”的节奏，别在同一轮连续否定两个人。');
+  } else {
+    items.push('记录还太少。先把每轮票型记满，再回来看暴露度。');
+  }
+
+  // 找可能的派西维尔
+  let follower = null;
+  for (let i = 1; i <= game.n; i++) {
+    if (i === me || evil.has(i)) continue;
+    const ag = agreement(me, i);
+    if (ag && ag.tot >= 2 && ag.rate >= 0.75 && (!follower || ag.rate > follower.rate)) {
+      follower = { id: i, rate: ag.rate, tot: ag.tot };
+    }
+  }
+  if (follower && game.roles.percival) {
+    items.push('<b>' + follower.id + ' 号</b>与你的投票一致率 ' + Math.round(follower.rate * 100) + '%（' + follower.tot + ' 次）——很可能是派西维尔。别公开保他，用发言暗示他继续跟。');
+  }
+  return block(title, cls, items) +
+    '<div class="meta">你的信号分：' + num(sig.score) + '（' + sig.no + ' 次反对含坏人车，' + sig.yes + ' 次赞成）</div>';
+}
+
+function morganaAdvice() {
+  const evil = knownEvilSet();
+  const items = [];
+  if (!game.private.teammates.length) {
+    items.push('先在右侧标出队友，后面才能算谁在跟着你。');
+  }
+  // 找跟随者
+  let follower = null;
+  for (let i = 1; i <= game.n; i++) {
+    if (i === game.mySeat || evil.has(i)) continue;
+    const ag = agreement(game.mySeat, i);
+    if (ag && ag.tot >= 2 && ag.rate >= 0.7 && (!follower || ag.rate > follower.rate)) {
+      follower = { id: i, rate: ag.rate, tot: ag.tot };
+    }
+  }
+  let title = '让派西维尔相信你是梅林';
+  if (follower) {
+    title = follower.id + ' 号在跟着你';
+    items.push(follower.id + ' 号与你的投票一致率 ' + Math.round(follower.rate * 100) + '%（' + follower.tot + ' 次），很可能是派西维尔。');
+    items.push('继续喂他“准”的信息，但别公开保他——太明显会被刺客反推。');
+  } else {
+    items.push('目前还没有明显跟随者。你要演得像梅林：反对含坏人的车，但别次次都对。');
+  }
+  items.push('保队友要间接：不要公开说队友是好人，而是攻击指控他的人。');
+  items.push('如果派西维尔公开护你，说明他上钩了——但这也可能让刺客以为他是梅林，谨慎利用。');
+  return block(title, '', items);
+}
+
+function mordredAdvice() {
+  const evil = knownEvilSet();
+  if (!game.private.teammates.length) {
+    return block('先标出队友', 'warn', ['标出队友后，我才能找出“从不反对你、却反对其他坏人”的人——那通常就是梅林。']);
+  }
+  const list = [];
+  for (let i = 1; i <= game.n; i++) {
+    if (evil.has(i)) continue;
+    let a = 0, b = 0;
+    game.log.forEach(e => {
+      const v = e.votes[i];
+      if (!v) return;
+      const hasMe = e.team.indexOf(game.mySeat) >= 0;
+      const hasOther = e.team.some(x => evil.has(x) && x !== game.mySeat);
+      if (hasMe && !hasOther && v === 'no') a++;
+      if (hasOther && !hasMe && v === 'no') b++;
+    });
+    list.push({ id: i, score: b - a, a, b });
+  }
+  list.sort((x, y) => y.score - x.score);
+  const top = list[0];
+  const items = [
+    '梅林看不到你，所以他不会特意避开你——谁只反对别人、从不反对你，谁就可疑。',
+    top && top.score > 0
+      ? '<b>' + top.id + ' 号</b>：反对其他坏人 ' + top.b + ' 次，反对你 ' + top.a + ' 次，差值 ' + top.score + '。'
+      : '目前还没有明显目标，先多记两轮。',
+    '你可以更激进：反正梅林看不见你，别浪费这个信息差。'
+  ];
+  return block(top && top.score > 0 ? '最可疑：' + top.id + ' 号' : '暂时没有目标', '', items) +
+    rankHTML(list.slice(0, 4));
+}
+
+function oberonAdvice() {
+  const items = [
+    '你不认识队友，队友也不认识你。你的失败票可能被他们当成好人内讧。',
+    '尽量在 3 人以上的车里投失败，别在 2 人车上单独炸——那等于自曝。',
+    '观察谁在你炸车后仍不攻击你：那大概率是队友。'
+  ];
+  return block('你是孤狼', '', items);
+}
+
+function loyalAdvice() {
+  const susp = publicSuspicion();
+  const sorted = susp.slice().sort((a, b) => a.v - b.v);
+  const k = requiredSize();
+  const rec = sorted.slice(0, k);
+  const items = [];
+
+  if (!game.log.length) {
+    items.push('还没有记录。先记第一轮的车队与票型，怀疑度才有依据。');
+  } else {
+    items.push('目前最可信：' + rec.map(x => '<b>' + x.id + ' 号</b>').join('、') + '。');
+    items.push('本轮 ' + k + ' 人车建议从这几个人里选；第 4 轮尤其要避开存疑玩家。');
+  }
+  if (draft && draft.team.length) {
+    const avgTeam = draft.team.reduce((a, id) => a + (susp.find(s => s.id === id) || { v: 0 }).v, 0) / draft.team.length;
+    const avgAll = susp.reduce((a, s) => a + s.v, 0) / susp.length;
+    if (avgTeam > avgAll + 0.3) items.push('当前这支车队的平均怀疑度偏高，<b>建议投反对</b>。');
+    else if (avgTeam < avgAll - 0.3) items.push('当前车队整体可信，可以投赞成。');
+    else items.push('当前车队好坏参半，看你是否想用这一轮做试探。');
+  }
+  return block('本轮建议', '', items) +
+    rankHTML(susp.slice().sort((a, b) => b.v - a.v).slice(0, 5), '柱子越长 = 越可疑（失败车、赞成失败车会加分）');
+}
+
+function renderAdvice() {
+  const card = $('#adviceCard');
+  card.innerHTML = '<div class="cardhead">建议 <span class="hint">' + ROLE[game.myRole].name + '视角</span></div>' +
+    '<div class="meta" style="margin-top:0;margin-bottom:10px">' + phaseTip() + '</div>' +
+    '<div class="adv">' + adviceHTML() + '</div>';
+}
+
+/* =========================================================
+   事件
+   ========================================================= */
+function toast(msg) {
+  const t = $('#toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  clearTimeout(toast._t);
+  toast._t = setTimeout(() => t.classList.remove('show'), 1800);
+}
+
+function setTag(id, tag) {
+  const m = game.marks[id] || (game.marks[id] = {});
+  m.tag = m.tag === tag ? null : tag;
+  save();
+  renderGame();
+}
+
+function setStar(id, v) {
+  const m = game.marks[id] || (game.marks[id] = {});
+  m.star = (m.star === v) ? 0 : v;
+  save();
+  renderGame();
+}
+
+function toggleKnow(id) {
+  const p = game.private;
+  const r = game.myRole;
+  const m = game.marks[id] || (game.marks[id] = {});
+  if (r === 'merlin') {
+    const expect = RULES[game.n].evil - (game.roles.mordred ? 1 : 0);
+    const i = p.seenEvil.indexOf(id);
+    if (i >= 0) { p.seenEvil.splice(i, 1); if (m.tag === 'evil') m.tag = null; }
+    else {
+      if (p.seenEvil.length >= expect) return toast('最多只能选 ' + expect + ' 个');
+      p.seenEvil.push(id);
+      m.tag = 'evil';
+    }
+  } else {
+    const i = p.teammates.indexOf(id);
+    if (i >= 0) { p.teammates.splice(i, 1); if (m.tag === 'evil') m.tag = null; }
+    else {
+      p.teammates.push(id);
+      m.tag = 'evil';
+    }
+  }
+  save();
+  renderGame();
+}
+
+document.addEventListener('click', function (e) {
+  const t = e.target.closest('[data-act]');
+  if (!t) return;
+  const act = t.dataset.act;
+  const id = +t.dataset.id;
+
+  if (act === 'n') { setup.n = +t.dataset.n; setup.mySeat = clamp(setup.mySeat, 1, setup.n); renderSetup(); return; }
+  if (act === 'role') {
+    const k = t.dataset.role;
+    if (k === 'merlin' || k === 'assassin') return;
+    setup.roles[k] = !setup.roles[k];
+    renderSetup(); return;
+  }
+  if (act === 'preset') {
+    const p = PRESETS.find(x => x.id === t.dataset.preset);
+    if (!p) return;
+    setup.n = p.n;
+    setup.roles = { merlin: true, percival: false, morgana: false, mordred: false, oberon: false, assassin: true };
+    Object.keys(p.roles).forEach(k => { setup.roles[k] = !!p.roles[k]; });
+    setup.mySeat = clamp(setup.mySeat, 1, setup.n);
+    if (!roleOptions(setup.n, setup.roles).some(o => o.key === setup.myRole)) setup.myRole = 'merlin';
+    renderSetup(); return;
+  }
+  if (act === 'start') { startGame(); return; }
+  if (act === 'demo') { loadDemo('percival'); return; }
+  if (act === 'reset') {
+    if (!confirm('结束当前记录并新开一局？')) return;
+    game = null; clearSave(); showSetup(); return;
+  }
+  if (act === 'select') { sel = id; renderGame(); return; }
+  if (act === 'close-editor') { sel = null; renderGame(); return; }
+  if (act === 'tag') { setTag(id, t.dataset.tag); return; }
+  if (act === 'star') { setStar(id, +t.dataset.v); return; }
+  if (act === 'team') { toggleTeam(id); return; }
+  if (act === 'vote') { setVote(id, t.dataset.v); return; }
+  if (act === 'all-yes') { allVotes('yes'); return; }
+  if (act === 'clear-votes') { draft.votes = {}; renderGame(); return; }
+  if (act === 'submit') { submitProposal(); return; }
+  if (act === 'fails') { resolveQuest(+t.dataset.n); return; }
+  if (act === 'know') { toggleKnow(id); return; }
+});
+
+document.addEventListener('change', function (e) {
+  const t = e.target;
+  if (t.id === 'myRoleSel') { setup.myRole = t.value; $('#myRoleMeta').textContent = ROLE_DESC[setup.myRole] || ''; return; }
+  if (t.id === 'mySeat') { setup.mySeat = +t.value; return; }
+  const act = t.dataset.act;
+  if (!act) return;
+  if (act === 'leader') { draft.leader = +t.value; renderGame(); return; }
+  if (act === 'guess') {
+    const id = +t.dataset.id;
+    const m = game.marks[id] || (game.marks[id] = {});
+    m.role = t.value || null;
+    save(); renderGame(); return;
+  }
+  if (act === 'cand') {
+    const slot = +t.dataset.slot;
+    const v = t.value ? +t.value : null;
+    game.private.candidates[slot] = v;
+    save(); renderGame(); return;
+  }
+});
+
+document.addEventListener('input', function (e) {
+  const t = e.target;
+  if (t.dataset.act === 'note') {
+    const id = +t.dataset.id;
+    const m = game.marks[id] || (game.marks[id] = {});
+    m.note = t.value;
+    save();
+  }
+});
+
+/* =========================================================
+   示例局面
+   ========================================================= */
+function loadDemo(role) {
+  const roles = { merlin: true, percival: true, morgana: true, mordred: false, oberon: true, assassin: true };
+  game = buildGame(7, roles, role, role === 'assassin' ? 1 : 4);
+  game.demo = true;
+  const V = (yes, no) => {
+    const o = {};
+    yes.forEach(i => o[i] = 'yes');
+    no.forEach(i => o[i] = 'no');
+    return o;
+  };
+  if (role === 'assassin') {
+    game.log.push({ id: uid(), round: 1, leader: 1, team: [1, 2], votes: V([1, 2, 3, 4, 5, 7], [6]), approved: true, quest: { fails: 0, result: 'success' } });
+    game.log.push({ id: uid(), round: 2, leader: 2, team: [2, 3, 5], votes: V([1, 2, 3, 4, 5, 7], [6]), approved: true, quest: { fails: 1, result: 'fail' } });
+    game.log.push({ id: uid(), round: 3, leader: 3, team: [3, 4, 6], votes: V([3, 4, 6], [1, 2, 5, 7]), approved: false, quest: null });
+    game.log.push({ id: uid(), round: 3, leader: 4, team: [1, 4, 6], votes: V([1, 2, 4, 6], [3, 5, 7]), approved: true, quest: { fails: 0, result: 'success' } });
+    game.good = 2; game.evil = 1;
+    game.private.teammates = [2];
+    game.marks[6] = { tag: null, role: 'merlin', note: '两轮都精准反对含 2 号的车', star: 2 };
+    game.marks[3] = { tag: 'core', role: '', note: '', star: 0 };
+  } else {
+    game.log.push({ id: uid(), round: 1, leader: 1, team: [1, 2], votes: V([1, 2, 3, 5, 6, 7], [4]), approved: true, quest: { fails: 0, result: 'success' } });
+    game.log.push({ id: uid(), round: 2, leader: 2, team: [2, 3, 5], votes: V([2, 3, 4, 5, 7], [1, 6]), approved: true, quest: { fails: 1, result: 'fail' } });
+    game.log.push({ id: uid(), round: 3, leader: 3, team: [3, 4, 6], votes: V([3, 4, 6], [1, 2, 5, 7]), approved: false, quest: null });
+    game.log.push({ id: uid(), round: 3, leader: 4, team: [1, 4, 6], votes: V([1, 2, 4, 6], [3, 5, 7]), approved: true, quest: { fails: 0, result: 'success' } });
+    game.good = 2; game.evil = 1;
+    game.private.candidates = [3, 6];
+    game.marks[3] = { tag: 'sus', role: '', note: '第 2 轮上了失败车', star: 0 };
+    game.marks[6] = { tag: 'core', role: 'merlin', note: '投票一直很准', star: 0 };
+  }
+  game.round = 4; game.leader = 5; game.rejections = 0;
+  sel = null;
+  draft = { leader: 5, team: [], votes: {} };
+  save();
+  showGame();
+}
+
+/* =========================================================
+   自检（#selftest）
+   ========================================================= */
+function runSelfTest() {
+  const out = [];
+  const ok = (name, cond, extra) => out.push((cond ? 'PASS' : 'FAIL') + '  ' + name + (extra !== undefined ? '  [' + extra + ']' : ''));
+
+  const rc7 = roleCounts(7, { merlin: 1, percival: 1, morgana: 1, mordred: 0, oberon: 1, assassin: 1 });
+  ok('7人标准局 忠臣=2', rc7.loyal === 2, rc7.loyal);
+  ok('7人标准局 爪牙=0', rc7.minions === 0, rc7.minions);
+  const rc8 = roleCounts(8, { merlin: 1, percival: 1, morgana: 1, mordred: 1, oberon: 0, assassin: 1 });
+  ok('8人莫德雷德局 忠臣=3', rc8.loyal === 3, rc8.loyal);
+  const bad = roleCounts(7, { merlin: 1, percival: 1, morgana: 1, mordred: 1, oberon: 1, assassin: 1 });
+  ok('7人放4个特殊坏人应无效', bad.valid === false, bad.minions);
+
+  /* 状态机 */
+  game = buildGame(7, { merlin: true, percival: true, morgana: true, mordred: false, oberon: true, assassin: true }, 'percival', 4);
+  game.leader = 1; resetDraft();
+  draft.team = [1, 2];
+  for (let i = 1; i <= 7; i++) draft.votes[i] = 'yes';
+  draft.votes[4] = 'no';
+  submitProposal();
+  ok('提案通过后进入待结算', game.pending !== null && game.log.length === 1);
+  resolveQuest(0);
+  ok('任务成功后好人+1', game.good === 1 && game.evil === 0, game.good + ':' + game.evil);
+  ok('进入第2轮', game.round === 2, game.round);
+  ok('队长顺时针移交', draft.leader === 2, draft.leader);
+
+  draft.team = [2, 3, 4];
+  for (let i = 1; i <= 7; i++) draft.votes[i] = 'no';
+  for (let i = 1; i <= 3; i++) draft.votes[i] = 'yes';
+  submitProposal();
+  ok('3:4 应被否决', game.log[game.log.length - 1].approved === false);
+  ok('否决计数+1', game.rejections === 1, game.rejections);
+  ok('否决后换队长', draft.leader === 3, draft.leader);
+
+  game.round = 4; game.leader = 1; resetDraft();
+  draft.team = [1, 2, 3, 4];
+  for (let i = 1; i <= 7; i++) draft.votes[i] = 'yes';
+  submitProposal();
+  resolveQuest(1);
+  ok('第4轮仅1张失败票仍算成功', game.evil === 0, game.evil);
+
+  /* 刺客信号 */
+  game = buildGame(8, { merlin: true, percival: true, morgana: true, mordred: true, oberon: false, assassin: true }, 'assassin', 1);
+  game.private.teammates = [2];
+  game.log = [
+    { id: 'a', round: 1, leader: 1, team: [1, 2, 3], votes: { 1: 'yes', 2: 'yes', 3: 'yes', 4: 'no', 5: 'yes', 6: 'yes', 7: 'yes', 8: 'yes' }, approved: true, quest: { fails: 0, result: 'success' } },
+    { id: 'b', round: 2, leader: 2, team: [2, 4, 5, 6], votes: { 1: 'yes', 2: 'yes', 3: 'yes', 4: 'yes', 5: 'yes', 6: 'no', 7: 'no', 8: 'no' }, approved: true, quest: { fails: 1, result: 'fail' } },
+    { id: 'c', round: 3, leader: 3, team: [3, 7, 8, 1], votes: { 1: 'yes', 2: 'no', 3: 'yes', 4: 'no', 5: 'no', 6: 'no', 7: 'yes', 8: 'yes' }, approved: false, quest: null }
+  ];
+  const evil = knownEvilSet();
+  ok('刺客知道队友+自己', evil.has(1) && evil.has(2) && evil.size === 2, evil.size);
+  const s6 = signal(6, evil);
+  ok('6号两次反对含坏人车', s6.no === 2, s6.no);
+  const s3 = signal(3, evil);
+  ok('3号从未反对含坏人车', s3.no === 0, s3.no);
+
+  /* 派西维尔 */
+  game = buildGame(7, { merlin: true, percival: true, morgana: true, mordred: false, oberon: true, assassin: true }, 'percival', 4);
+  game.log = [
+    { id: 'x', round: 2, leader: 2, team: [2, 3, 5], votes: { 1: 'no', 2: 'yes', 3: 'yes', 4: 'yes', 5: 'yes', 6: 'no', 7: 'yes' }, approved: true, quest: { fails: 1, result: 'fail' } }
+  ];
+  game.private.candidates = [3, 6];
+  const e3 = percivalEvilScore(3), e6 = percivalEvilScore(6);
+  ok('派西维尔：上失败车的3号证据更高', e3.s > e6.s, e3.s + ' / ' + e6.s);
+
+  /* 历史矩阵渲染 */
+  game = buildGame(7, { merlin: true, percival: true, morgana: true, mordred: false, oberon: true, assassin: true }, 'percival', 4);
+  game.log = [
+    { id: 'm1', round: 1, leader: 1, team: [1, 2], votes: { 1: 'yes', 2: 'yes', 3: 'yes', 4: 'no', 5: 'yes', 6: 'yes', 7: 'yes' }, approved: true, quest: { fails: 0, result: 'success' } },
+    { id: 'm2', round: 2, leader: 2, team: [2, 3, 5], votes: { 1: 'no', 2: 'yes', 3: 'yes', 4: 'yes', 5: 'yes', 6: 'no', 7: 'yes' }, approved: true, quest: { fails: 1, result: 'fail' } }
+  ];
+  renderLog();
+  const html = $('#logList').innerHTML;
+  const onTeam = (html.match(/on-team/g) || []).length;
+  ok('历史矩阵：在车标记数 = 2+3', onTeam === 5, onTeam);
+  ok('历史矩阵：玩家单元格 = 7×2', (html.match(/mx-cell/g) || []).length === 14, (html.match(/mx-cell/g) || []).length);
+  ok('历史矩阵：显示失败票数', html.indexOf('1 张失败票') >= 0);
+
+  const pre = document.createElement('pre');
+  pre.style.cssText = 'color:#ddd;background:#111;padding:24px;font-size:13px;line-height:1.9;margin:0;min-height:100vh';
+  pre.textContent = out.join('\n') + '\n\n' + (out.every(x => x.indexOf('PASS') === 0) ? 'ALL PASS' : 'SOME FAILED');
+  document.body.innerHTML = '';
+  document.body.appendChild(pre);
+}
+
+/* =========================================================
+   启动
+   ========================================================= */
+function boot() {
+  const h = location.hash || '';
+  if (h === '#selftest') { runSelfTest(); return; }
+  if (h.indexOf('#demo') === 0) {
+    loadDemo(h.indexOf('assassin') >= 0 ? 'assassin' : 'percival');
+    return;
+  }
+  let raw = null;
+  try { raw = localStorage.getItem(KEY); } catch (e) {}
+  if (raw) {
+    try {
+      const g = JSON.parse(raw);
+      if (g && g.n && g.myRole) {
+        game = g;
+        sel = null;
+        draft = { leader: game.leader, team: [], votes: {} };
+        showGame();
+        return;
+      }
+    } catch (e) {}
+  }
+  showSetup();
+}
+
+boot();
+
+/* 暴露少量接口，便于控制台调试 */
+window.__avalon = { get game() { return game; }, loadDemo, showSetup };
+})();
+</script>
+
+<script>
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', function () {
+    navigator.serviceWorker.register('./sw.js').catch(function () {});
+  });
+}
+</script>
+</body>
+</html>
